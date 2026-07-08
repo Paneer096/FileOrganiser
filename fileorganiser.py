@@ -1,8 +1,11 @@
 import os
+import sys
 import shutil
 from pathlib import Path
+# Import the UI class we just created
+from ui import OrganizerUI
+from PySide6.QtWidgets import QApplication
 
-# Define your mapping of folders to extensions
 EXTENSION_MAP = {
     "Images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp"],
     "Documents": [".pdf", ".docx", ".doc", ".txt", ".xlsx", ".xls", ".pptx", ".ppt", ".csv"],
@@ -12,64 +15,59 @@ EXTENSION_MAP = {
     "Executables": [".exe", ".msi"],
 }
 
-def organize_folder(target_dir):
+# The logic now accepts a target directory and the ui log element
+def organize_folder(target_dir, ui_logger):
     path = Path(target_dir)
     
     if not path.exists():
-        print(f"Error: The directory '{target_dir}' does not exist.")
+        ui_logger.append(f"Error: The directory '{target_dir}' does not exist.")
         return
 
-    print(f"Organizing files in: {path.resolve()}\n")
     moved_count = 0
 
-    # Iterate through all items in the directory
     for item in path.iterdir():
-        # Skip directories and the script itself if it's running inside the same folder
-        if item.is_dir() or item.name == "organizer.py":
+        # Prevent moving the code files themselves
+        if item.is_dir() or item.name in ["fileorganiser.py", "ui.py"]:
             continue
             
         file_ext = item.suffix.lower()
         moved = False
 
-        # Look for a matching category in our map
         for folder_name, extensions in EXTENSION_MAP.items():
             if file_ext in extensions:
-                # Create the category folder if it doesn't exist yet
                 destination_folder = path / folder_name
                 destination_folder.mkdir(exist_ok=True)
-                
-                # Define the final path for the file
                 destination_path = destination_folder / item.name
                 
-                # Handle potential naming conflicts (don't overwrite files)
                 if destination_path.exists():
-                    print(f"Skipped (File already exists in destination): {item.name}")
+                    ui_logger.append(f"Skipped (Exists): {item.name}")
                     continue
 
-                # Move the file
                 shutil.move(str(item), str(destination_path))
-                print(f"Moved: {item.name} -> {folder_name}/")
+                ui_logger.append(f"Moved: {item.name} -> {folder_name}/")
                 moved_count += 1
                 moved = True
                 break
         
-        # Optional: Handle unknown files by putting them in an 'Others' folder
-        if not moved and file_ext != "": # Ignore files without an extension
+        if not moved and file_ext != "":
             others_folder = path / "Others"
             others_folder.mkdir(exist_ok=True)
             destination_path = others_folder / item.name
             
             if not destination_path.exists():
                 shutil.move(str(item), str(destination_path))
-                print(f"Moved: {item.name} -> Others/")
+                ui_logger.append(f"Moved: {item.name} -> Others/")
                 moved_count += 1
 
-    print(f"\nDone! Successfully organized {moved_count} files.")
+    ui_logger.append(f"\nFinished! Successfully organized {moved_count} files.")
 
+
+# The App Entry Point
 if __name__ == "__main__":
-    # Prompt the user for the directory path
-    user_input = input("Enter the full path of the folder to organize (e.g., C:\\Users\\Name\\Downloads): ").strip()
-    # Remove surrounding quotes if the user dragged and dropped the folder into the terminal
-    user_input = user_input.strip('"\'')
+    app = QApplication(sys.argv)
     
-    organize_folder(user_input)
+    # We pass the organize_folder function into the UI as a callback
+    window = OrganizerUI(start_organizer_callback=organize_folder)
+    window.show()
+    
+    sys.exit(app.exec())
