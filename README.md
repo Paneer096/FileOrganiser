@@ -23,4 +23,4 @@ Python 3.x must be installed on your operating system. Ensure that Python is add
 
 ## UI 
 
-* PySide
+* PySide6
