@@ -20,3 +20,7 @@ This is a command-line Python application designed to automatically sort and org
 ## Prerequisites
 
 Python 3.x must be installed on your operating system. Ensure that Python is added to your environment system variables (PATH) during installation.
+
+## UI 
+
+* PySide
